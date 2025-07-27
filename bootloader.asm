@@ -1,6 +1,6 @@
 [bits 16]
 [org 0x7c00]
-NUMBER_OF_SECTOR_TO_LOAD equ 4
+NUMBER_OF_SECTOR_TO_LOAD equ 78
 jmp start
 ;something
 TIMES 3-($-$$) DB 0x90   ; Support 2 or 3 byte encoded JMPs before BPB.
@@ -126,16 +126,18 @@ nextSectorStart:
 
 	;call drawPixel
 	;call drawImage
-	mov edi, 20
-	mov esi, 30
-	mov eax, 0x00ff0000
-	call drawSquare
+	;mov edi, 20
+	;mov esi, 30
+	;mov eax, 0x00ff0000
+	;call drawSquare
+
+	call drawImage
 
 	;mov edi, dword
 
 	jmp $ ; infinate loop
 
-pixelSize equ 20
+pixelSize equ 10
 yCounter: dd 0
 xCounter: dd 0
 colour: db 0,0,0
@@ -180,6 +182,34 @@ drawSquare:; edi = x, esi = y eax = colour
 	;add esp, 5
 	popad
 	ret
+imgSizeX equ 128
+imgSizeY equ 102
+drawImage:
+	pushad
+		mov ecx, image
+		mov esi, 0
+		.yLoop:
+			mov edi, 0
+			.xLoop:
+				;This is why the image chanlles need flipping in imgToBin.py
+				;It is readnig in expecting little endien but gets big endien
+				;It is difficult to fix here because we need to reflect a register around its center
+				;Which is a bit fiderly therefore it is done in the python code instead
+				mov eax, dword[ecx]
+				pushad
+					imul edi, edi, pixelSize
+					imul esi, esi, pixelSize
+					call drawSquare
+				popad
+				inc edi
+				add ecx, 3
+				cmp edi, imgSizeX
+				jl .xLoop
+			inc esi
+			cmp esi, imgSizeY
+			jl .yLoop
+	popad
+	ret
 
 video_info:
 	dw 0h        ; ModeAttributes (bit 0 = linear frame buffer)
@@ -217,7 +247,7 @@ video_info:
 	times 206 db 0h
 
 image:
-;incbin "img.bin"
+incbin "img.bin"
 
 ;specifies amount of padding
 ;512*3 => 3 sectors but includes bootloader so extended program is 2 sectors long max

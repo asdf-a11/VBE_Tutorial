@@ -9,8 +9,10 @@ import numpy as np
 
 IMAGE_FILE_PATH = "Lenna.png"
 #Set the the resolution of the VBE mode you are using
-RES_X = 1280
-RES_Y = 1024
+ps = 10
+RES_X = 1280//ps
+RES_Y = 1024//ps
+print(RES_X,RES_Y)
 #rgb = 3 256 VGA default pallete is 1
 BYTES_PER_PIXEL = 3
 #
@@ -52,19 +54,22 @@ def BackToImage(lst):
     return img
 
 img = Image.open(IMAGE_FILE_PATH)
+
 #img = img.resize((RES_X, RES_Y))
-small = img.resize((100, 100), resample=Image.NEAREST)  # Downscale
-img = small.resize((RES_X, RES_Y), resample=Image.NEAREST)  # Upscale
+img = img.resize((RES_X, RES_Y), resample=Image.NEAREST)  # Downscale
+
+#img = small.resize((RES_X, RES_Y), resample=Image.NEAREST)  # Upscale
 #img.show()
 arr = np.array(img, dtype=np.uint8)
+arr = arr[:, :, ::-1]
 arr = arr.flatten()
 
 
-a = len(arr)
-arr = RunLengthEncode(arr)
-BackToImage(arr).show()
-b = len(arr)
-print(a,b,b/a)
-#with open("img.bin", "wb") as f:
-#    f.write(np.array(arr,dtype=np.uint8).tobytes())
+#a = len(arr)
+#arr = RunLengthEncode(arr)
+#BackToImage(arr).show()
+#b = len(arr)
+print(len(arr), len(arr)/512)
+with open("img.bin", "wb") as f:
+    f.write(np.array(arr,dtype=np.uint8).tobytes("C"))
 #print("Done")
