@@ -1,6 +1,6 @@
 [bits 16]
 [org 0x7c00]
-NUMBER_OF_SECTOR_TO_LOAD equ 2
+NUMBER_OF_SECTOR_TO_LOAD equ 4
 jmp start
 ;something
 TIMES 3-($-$$) DB 0x90   ; Support 2 or 3 byte encoded JMPs before BPB.
@@ -124,21 +124,62 @@ nextSectorStart:
 	or al, 2
 	out 0x92, al	
 
+	;call drawPixel
+	;call drawImage
+	mov edi, 20
+	mov esi, 30
+	mov eax, 0x00ff0000
+	call drawSquare
 
-	mov ecx, dword[video_address]
-	;set this to the number of pixles for your chosen video mode
-	mov edx, 1280*1024*3 
-	add edx, ecx	
-	.loopHead:
-		mov edi, ecx
-		mov al, cl
-		mov byte[edi], al
-		cmp ecx, edx
-		jge .loopEnd
-		add ecx, 3 ; number of byte per pixel
-		jmp .loopHead
-	.loopEnd:
+	;mov edi, dword
+
 	jmp $ ; infinate loop
+
+pixelSize equ 20
+yCounter: dd 0
+xCounter: dd 0
+colour: db 0,0,0
+drawSquare:; edi = x, esi = y eax = colour
+	pushad
+	mov ecx, eax
+	mov byte[colour], cl
+	shr ecx, 8
+	mov byte[colour+1], cl
+	mov byte[colour+2], ch
+	;ax = blue green
+	mov ecx, esi
+	movzx ebx, word[video_x_res]
+	imul ebx, 3
+	imul ecx, ebx
+	imul ebx, edi, 3
+	add ecx, ebx	
+	add ecx, dword[video_address]
+	mov dword[yCounter], 0
+	.yLoop:
+		mov dword[xCounter], 0
+		.xLoop:
+			;push ebx
+			;clobber ebx
+				mov bl, byte[colour]
+				mov byte[ecx], bl
+				inc ecx
+				mov bl, byte[colour+1]
+				mov byte[ecx], bl
+				inc ecx
+				mov bl, byte[colour+2]
+				mov byte[ecx], bl
+				inc ecx
+			;pop ebx
+			inc dword[xCounter]
+			cmp dword[xCounter], pixelSize
+			jle .xLoop
+		add ecx, (1280-pixelSize-1)*3
+		inc dword[yCounter]
+		cmp dword[yCounter], pixelSize
+		jle .yLoop
+	;add esp, 5
+	popad
+	ret
 
 video_info:
 	dw 0h        ; ModeAttributes (bit 0 = linear frame buffer)
@@ -150,7 +191,7 @@ video_info:
 	dw 0h             ; WinBSegment
 	dd 0h             ; WinFuncPtr
 	video_bytesPerScanLine: dw 0h ; BytesPerScanLine
-	dw 0h             ; XResolution
+	video_x_res: dw 0h             ; XResolution
 	dw 0h             ; YResolution
 	db 0h             ; XCharSize
 	db 0h             ; YCharSize
@@ -174,6 +215,9 @@ video_info:
 	dd 0h             ; OffScreenMemOffset
 	dw 0h             ; OffScreenMemSize
 	times 206 db 0h
+
+image:
+;incbin "img.bin"
 
 ;specifies amount of padding
 ;512*3 => 3 sectors but includes bootloader so extended program is 2 sectors long max
