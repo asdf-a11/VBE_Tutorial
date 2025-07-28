@@ -124,31 +124,31 @@ nextSectorStart:
 	or al, 2
 	out 0x92, al	
 
-	;call drawPixel
-	;call drawImage
-	;mov edi, 20
-	;mov esi, 30
-	;mov eax, 0x00ff0000
-	;call drawSquare
+	;;Draw pixel code
+	;mov edi, dword[video_address]
+	;add edi, 2*3; 2 pixels along the x axis
+	;;Remember that *3 is because the video mode has rgb, most video modes only have a single byte for which reprisents
+	;;a colour pallete of 255 so in that case it would be *1
+	;mov byte[edi], 0xff ; Pixel should be red
 
 	call drawImage
-
-	;mov edi, dword
 
 	jmp $ ; infinate loop
 
 pixelSize equ 10
+; Its just easier to use global varaibles as opposed to using the stack
 yCounter: dd 0
 xCounter: dd 0
 colour: db 0,0,0
-drawSquare:; edi = x, esi = y eax = colour
+; edi = x, esi = y eax = colour
+drawSquare:
 	pushad
+	;Saving the colour into the colour varaible from eax register
 	mov ecx, eax
 	mov byte[colour], cl
 	shr ecx, 8
 	mov byte[colour+1], cl
 	mov byte[colour+2], ch
-	;ax = blue green
 	mov ecx, esi
 	movzx ebx, word[video_x_res]
 	imul ebx, 3
@@ -175,13 +175,15 @@ drawSquare:; edi = x, esi = y eax = colour
 			inc dword[xCounter]
 			cmp dword[xCounter], pixelSize
 			jle .xLoop
+		;Hard coded I think it should be word[vidoe_x_res] like above
+		;that would make sense.
 		add ecx, (1280-pixelSize-1)*3
 		inc dword[yCounter]
 		cmp dword[yCounter], pixelSize
 		jle .yLoop
-	;add esp, 5
 	popad
 	ret
+;Make sure this matches the arguments in imgToBin.py
 imgSizeX equ 128
 imgSizeY equ 102
 drawImage:
@@ -196,13 +198,13 @@ drawImage:
 				;It is difficult to fix here because we need to reflect a register around its center
 				;Which is a bit fiderly therefore it is done in the python code instead
 				mov eax, dword[ecx]
-				pushad
+				pushad ; just push all registers because I am lazy
 					imul edi, edi, pixelSize
 					imul esi, esi, pixelSize
 					call drawSquare
 				popad
 				inc edi
-				add ecx, 3
+				add ecx, 3 ; step over the 3 bytes per pixel
 				cmp edi, imgSizeX
 				jl .xLoop
 			inc esi
@@ -247,6 +249,7 @@ video_info:
 	times 206 db 0h
 
 image:
+;actually adds the image into the machine code
 incbin "img.bin"
 
 ;specifies amount of padding
